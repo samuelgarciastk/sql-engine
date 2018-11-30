@@ -1,0 +1,34 @@
+Supported SQL Structure:
+
+select $col_name1, $col_name2, ... from a [join b on $col_name3=$col_name4] [where $col_name5=$constant_int
+
+
+All expressions conform to:
+1. col name
+2. equal operand
+3. constant int
+
+
+Physical Plan Optimization should have:
+1. predicate(filter) push down
+2. predicate push to pseudo-storage layer
+
+
+Input File Format:
+All table data place like: file:///tmp/tbl_{table_name}.data
+Format: row-oriented, (integer) data is splitted by one space
+Meta data place is: file:///tmp/db.tables
+One row denoted one table, format is like follow:
+tableA: a b c
+whichi means a named table: tableA has three columns a, b, c.
+Since we only support int, they are implicit of integer type.
+
+
+
+ANTLR Reference: 
+
+https://www.antlr.org/
+
+http://lms.ui.ac.ir/public/group/90/59/01/15738_ce57.pdf
+
+
