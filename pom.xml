@@ -20,10 +20,15 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.apache.spark</groupId>
-            <artifactId>spark-core_2.10</artifactId>
-            <version>1.1.0-transwarp-6.0.0</version>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-library</artifactId>
+            <version>${scala.version}</version>
         </dependency>
+        <!--<dependency>-->
+            <!--<groupId>org.apache.spark</groupId>-->
+            <!--<artifactId>spark-core_2.10</artifactId>-->
+            <!--<version>1.1.0-transwarp-6.0.0</version>-->
+        <!--</dependency>-->
         <dependency>
             <groupId>org.scalatest</groupId>
             <artifactId>scalatest_${scala.binary.version}</artifactId>
@@ -186,24 +191,24 @@
                     </compilerPlugins>
                 </configuration>
             </plugin>
-            <plugin>
-                <groupId>org.scalatest</groupId>
-                <artifactId>scalatest-maven-plugin</artifactId>
-                <version>1.0</version>
-                <configuration>
-                    <!--<reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>-->
-                    <!--<junitxml>.</junitxml>-->
-                    <!--<filereports>WDF TestSuite.txt</filereports>-->
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>test</id>
-                        <goals>
-                            <goal>test</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
+            <!--<plugin>-->
+                <!--<groupId>org.scalatest</groupId>-->
+                <!--<artifactId>scalatest-maven-plugin</artifactId>-->
+                <!--<version>1.0</version>-->
+                <!--<configuration>-->
+                    <!--&lt;!&ndash;<reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>&ndash;&gt;-->
+                    <!--&lt;!&ndash;<junitxml>.</junitxml>&ndash;&gt;-->
+                    <!--&lt;!&ndash;<filereports>WDF TestSuite.txt</filereports>&ndash;&gt;-->
+                <!--</configuration>-->
+                <!--<executions>-->
+                    <!--<execution>-->
+                        <!--<id>test</id>-->
+                        <!--<goals>-->
+                            <!--<goal>test</goal>-->
+                        <!--</goals>-->
+                    <!--</execution>-->
+                <!--</executions>-->
+            <!--</plugin>-->
         </plugins>
     </build>
 </project>

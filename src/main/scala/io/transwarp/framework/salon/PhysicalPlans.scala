@@ -2,111 +2,115 @@ package io.transwarp.framework.salon
 
 import io.transwarp.framework.salon.DataType.DataType
 
+import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
-abstract class PhysicalPlans extends Iterator[ArrayBuffer[RowResult]]{
-  val children: ArrayBuffer[PhysicalPlans] = new ArrayBuffer[PhysicalPlans]()
+abstract class PhysicalPlans extends Iterator[RowResult] {
+  val children: ArrayBuffer[PhysicalPlans] = new ArrayBuffer[PhysicalPlans]
   var schema: PSchema = _
 
-  def addChild(expr: PhysicalPlans): Unit = children += expr
+  def genSchema(): Unit
 
-  def outputSchema(): PSchema
-
-  def genMeta(): Unit
+  def outputSchema: PSchema = schema
 }
 
 class PSelectPlan(attr: Array[PExpr]) extends PhysicalPlans {
-  override def outputSchema(): PSchema = {
-    assert(children.size == 1)
-    schema = children.head.outputSchema()
+  private var originSchema: PSchema = _
+
+  override def genSchema(): Unit = {
+    originSchema = children.head.outputSchema
     val cols = attr.map(_.asInstanceOf[PColumnExpr].columnResolvedName)
-    val projected = schema.names.filter(cols.contains(_))
-    new PSchema(projected, Array.fill(projected.length)(DataType.INT))
+    val projected = originSchema.names.filter(cols.contains(_))
+    if (cols.length != projected.length) throw new RuntimeException("Cannot retrieve all columns in SELECT.")
+    schema = new PSchema(projected, Array.fill(projected.length)(DataType.INT))
   }
 
-  override def run: Array[Array[String]] = {
-    val data = children.head.run
-    data.map(line => attr.map(_.asInstanceOf[PColumnExpr].calc(line, schema).toString))
+  override def hasNext: Boolean = children.head.hasNext
+
+  override def next: RowResult = {
+    val row = children.head.next
+    new RowResult(attr.map(_.asInstanceOf[PColumnExpr].calc(row, originSchema)))
   }
 }
 
 class PJoinPlan(joinFilter: PExpr) extends PhysicalPlans {
-  override def outputSchema(): PSchema = {
-    assert(children.size == 2)
-    schema = children.head.outputSchema() merge children.last.outputSchema()
-    schema
-  }
+  private val rowBuffer = new mutable.Queue[RowResult]
+  private var hashMap: mutable.HashMap[String, ArrayBuffer[RowResult]] = _
+  private var rowIter: Iterator[RowResult] = _
 
-  override def run: Array[Array[String]] = {
+  override def genSchema(): Unit = schema = children.head.outputSchema merge children.last.outputSchema
+
+  //  override def run: Array[Array[String]] = {
+  //    val leftPlan = children.head
+  //    val rightPlan = children.last
+  //    val leftSchema = leftPlan.schema
+  //    val leftData = leftPlan.run
+  //    val rightSchema = rightPlan.schema
+  //    val rightData = rightPlan.run
+  //
+  //    if (joinFilter != null) {
+  //      val filter = joinFilter.asInstanceOf[PEqualOperator]
+  //      leftData.flatMap(leftLine =>
+  //        rightData.map(rightLine =>
+  //          if (filter calc Map(leftSchema -> leftLine, rightSchema -> rightLine)) leftLine ++ rightLine
+  //          else null
+  //        ).filter(_ != null)
+  //      )
+  //    } else leftData.flatMap(leftLine => rightData.map(leftLine ++ _))
+  //  }
+
+  override def hasNext: Boolean = if (rowBuffer.isEmpty) {
+    if (hashMap == null) build()
+  } else true
+
+  private def build(): Unit = {
+    val map = new mutable.HashMap[String, ArrayBuffer[RowResult]]
     val leftPlan = children.head
-    val rightPlan = children.last
     val leftSchema = leftPlan.schema
-    val leftData = leftPlan.run
-    val rightSchema = rightPlan.schema
-    val rightData = rightPlan.run
+    val leftExpr = joinFilter.asInstanceOf[PEqualOperator].left.asInstanceOf[PColumnExpr]
+    while (leftPlan.hasNext) {
+      val row = leftPlan.next
+      val key = leftExpr.calc(row, leftSchema)
+      if (map contains row)
+    }
 
-    if (joinFilter != null) {
-      val filter = joinFilter.asInstanceOf[PEqualOperator]
-      leftData.flatMap(leftLine =>
-        rightData.map(rightLine =>
-          if (filter calc Map(leftSchema -> leftLine, rightSchema -> rightLine)) leftLine ++ rightLine
-          else null
-        ).filter(_ != null)
-      )
-    } else leftData.flatMap(leftLine => rightData.map(leftLine ++ _))
+    hashMap = map
+    rowIter = children.last
   }
+
+  override def next: RowResult = rowBuffer.dequeue
 }
 
 class PScanPlan(tableName: String, pushdownFilter: PExpr, columnSchema: Array[(String, DataType)]) extends PhysicalPlans {
-  private val partition = new ArrayBuffer[RowResult]
-  private var curSize = 0
   private var tableReader: TableReader = _
-  private var nextRow: RowResult = _
 
-  override def outputSchema(): PSchema = schema
-
-  override def genMeta(): Unit = {
+  override def genSchema(): Unit = {
     val names = columnSchema.map(f => s"$tableName.${f._1}")
     val types = columnSchema.map(_._2)
     schema = new PSchema(names, types)
     tableReader = new FakeTableReader(tableName, pushdownFilter, schema)
   }
 
-  override def hasNext: Boolean = {
-    var break = false
-    while (!break && tableReader.hasNext) {
-      nextRow = tableReader.next
-      if (curSize + nextRow.size > PScanPlan.MAX_SIZE) break = true
-      else {
-        partition += nextRow
-        curSize += nextRow.size
-      }
-    }
-    break || partition.nonEmpty
-  }
+  override def hasNext: Boolean = tableReader.hasNext
 
-  override def next(): ArrayBuffer[RowResult] = {
-    val res = partition
-    partition.clear
-    partition += nextRow
-    res
-  }
-}
-
-private object PScanPlan {
-  val MAX_SIZE = 1024
+  override def next: RowResult = tableReader.next
 }
 
 class PFilterPlan(expr: PExpr) extends PhysicalPlans {
-  override def outputSchema(): PSchema = {
-    assert(children.size == 1)
-    schema = children.head.outputSchema()
-    schema
+  private var nextRow: RowResult = _
+
+  override def genSchema(): Unit = schema = children.head.outputSchema
+
+  override def hasNext: Boolean = {
+    val iter = children.head
+    val filter = expr.asInstanceOf[PEqualOperator]
+    var break = false
+    while (!break && iter.hasNext) {
+      nextRow = iter.next
+      if (filter.calcExpr(nextRow, null)) break = true
+    }
+    break
   }
 
-  override def run: Array[Array[String]] = {
-    val data = children.head.run
-    val filter = expr.asInstanceOf[PEqualOperator]
-    data.map(line => if (filter calc Map(schema -> line)) line else null).filter(_ != null)
-  }
+  override def next: RowResult = nextRow
 }

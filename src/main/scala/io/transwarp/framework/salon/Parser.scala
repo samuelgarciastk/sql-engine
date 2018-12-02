@@ -29,14 +29,14 @@ class FakeParser extends Parser {
       val filterPlan = new FilterPlan(whereExpr)
       val joinPlan = ctx.fromClause.accept(this)
 
-      filterPlan.addChild(joinPlan)
-      selectPlan.addChild(filterPlan)
+      filterPlan.children += joinPlan
+      selectPlan.children += filterPlan
       selectPlan
     }
 
     override def visitExpressionSeq(ctx: SqlBaseParser.ExpressionSeqContext): LogicalPlans = {
-      val exprs = ctx.primaryExpression.asScala.map(_.accept(this).asInstanceOf[ExprPlan].expr).toArray
-      new SelectPlan(exprs)
+      val expr = ctx.primaryExpression.asScala.map(_.accept(this).asInstanceOf[ExprPlan].expr).toArray
+      new SelectPlan(expr)
     }
 
     override def visitExpression(ctx: SqlBaseParser.ExpressionContext): LogicalPlans = null
@@ -66,8 +66,8 @@ class FakeParser extends Parser {
         var i = 1
         while (i < relations.length) {
           val newRelation = new JoinPlan(null)
-          newRelation.addChild(leftRelation)
-          newRelation.addChild(relations(i))
+          newRelation.children += leftRelation
+          newRelation.children += relations(i)
           leftRelation = newRelation
           i += 1
         }
@@ -76,7 +76,7 @@ class FakeParser extends Parser {
     }
 
     override def visitRelation(ctx: SqlBaseParser.RelationContext): LogicalPlans = {
-      val leftExpr = ctx.relationPrimary.accept(this).asInstanceOf[ExprPlan].expr.asInstanceOf[TableExpression]
+      val leftExpr = ctx.relationPrimary.accept(this).asInstanceOf[ExprPlan].expr.asInstanceOf[ColumnExpression]
       val inputPlan = new InputPlan(leftExpr.tbl)
       var leftPlan: LogicalPlans = inputPlan
       ctx.joinRelation.asScala.map(_.accept(this)).foreach(plan => {
@@ -87,16 +87,16 @@ class FakeParser extends Parser {
     }
 
     override def visitRelationPrimary(ctx: SqlBaseParser.RelationPrimaryContext): LogicalPlans = {
-      val expr = new TableExpression(ctx.IDENTIFIER.getSymbol.getText)
+      val expr = new ColumnExpression(ctx.IDENTIFIER.getSymbol.getText, null)
       new ExprPlan(expr)
     }
 
     override def visitJoinRelation(ctx: SqlBaseParser.JoinRelationContext): LogicalPlans = {
-      val rightExpr = ctx.right.accept(this).asInstanceOf[ExprPlan].expr.asInstanceOf[TableExpression]
+      val rightExpr = ctx.right.accept(this).asInstanceOf[ExprPlan].expr.asInstanceOf[ColumnExpression]
       val inputPlan = new InputPlan(rightExpr.tbl)
       val equalExpr = ctx.booleanExpression.accept(this).asInstanceOf[ExprPlan].expr
       val joinPlan = new JoinPlan(equalExpr)
-      joinPlan.addChild(inputPlan)
+      joinPlan.children += inputPlan
       joinPlan
     }
 

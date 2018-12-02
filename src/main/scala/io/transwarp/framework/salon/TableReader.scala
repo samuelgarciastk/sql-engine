@@ -9,7 +9,7 @@ abstract class TableReader(tableName: String, filter: PExpr) extends Iterator[Ro
 
 class FakeTableReader(tableName: String, filter: PExpr, schema: PSchema) extends TableReader(tableName, filter) {
   private var lineIter: Iterator[String] = _
-  private var lineFilter: Array[String] => Boolean = _
+  private var lineFilter: RowResult => Boolean = _
   private var nextLine: RowResult = _
 
   init()
@@ -17,9 +17,9 @@ class FakeTableReader(tableName: String, filter: PExpr, schema: PSchema) extends
   override def hasNext: Boolean = {
     var break = false
     while (!break && lineIter.hasNext) {
-      val elems = lineIter.next.split("\\s+")
-      if (lineFilter(elems)) {
-        nextLine = new RowResult(elems.map(_.toInt))
+      val row = new RowResult(lineIter.next.split("\\s+").map(_.toInt))
+      if (lineFilter(row)) {
+        nextLine = row
         break = true
       }
     }
@@ -32,9 +32,9 @@ class FakeTableReader(tableName: String, filter: PExpr, schema: PSchema) extends
     val source = Source.fromFile(String.format(FakePath.TABLEPATTERN, tableName))
     lineIter = source.getLines
     source.close
-    lineFilter = if (filter != null) elems => {
+    lineFilter = if (filter != null) row => {
       val equalExpr = filter.asInstanceOf[PEqualOperator]
-      (elems.length == schema.names.length) && (equalExpr calc Map(schema -> elems))
+      (row.array.length == schema.names.length) && equalExpr.calcExpr(row, null)
     } else _ => true
   }
 }
