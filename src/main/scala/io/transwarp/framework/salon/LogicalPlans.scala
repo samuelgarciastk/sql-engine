@@ -14,7 +14,7 @@ abstract class LogicalPlans {
 
 class SelectPlan(attr: Array[Expr]) extends LogicalPlans {
   override def checkMeta(tmm: TableMetaManager): Boolean = {
-    val curRes = attr.map(_.asInstanceOf[ColumnExpression].checkMeta(tmm)).reduce(_ && _)
+    val curRes = attr.map(_.checkMeta(tmm)).reduce(_ && _)
     val childrenRes = if (children.nonEmpty) children.map(_.checkMeta(tmm)).reduce(_ && _) else true
     curRes && childrenRes
   }
@@ -34,7 +34,7 @@ class JoinPlan(joinFilter: Expr) extends LogicalPlans {
   }
 
   override def physicalPlan: PhysicalPlans = {
-    val pp = new PJoinPlan(if (joinFilter != null) joinFilter.genPExpr else null)
+    val pp = if (joinFilter == null) new NestedLoopJoinPlan(null) else new HashJoinPlan(joinFilter.genPExpr)
     children.foreach(pp.children += _.physicalPlan)
     pp
   }

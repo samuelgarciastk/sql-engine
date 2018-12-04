@@ -2,54 +2,61 @@ package io.transwarp.framework.salon
 
 abstract class PExpr {
   var schema: PSchema = _
+
+  def setSchema(schema: PSchema): Unit = this.schema = schema
+
+  def setSchema(leftSchema: PSchema, rightSchema: PSchema): Unit = throw new RuntimeException("Unsupported operation.")
+
+  def calc(line: RowResult): Int = throw new RuntimeException("Unsupported operation.")
+
+  def calc(leftLine: RowResult, rightLine: RowResult): Boolean = throw new RuntimeException("Unsupported operation.")
 }
 
 abstract class POperator extends PExpr
 
 class PEqualOperator(var left: PExpr, var right: PExpr) extends POperator {
-  def calcExpr(leftLine: RowResult, rightLine: RowResult): Boolean = {
-    def calc(line: RowResult, expr: PExpr): Int = expr match {
-      case e: PSymbolExpression => e.calc
-      case e: PColumnExpr => e calc line
-      case _ => throw new RuntimeException("Unsupported expression.")
-    }
-
-    calc(leftLine, left) == calc(rightLine, right)
-  }
-
-  def setSchema(leftSchema: PSchema, rightSchema: PSchema): Unit = {
+  override def setSchema(leftSchema: PSchema, rightSchema: PSchema): Unit = {
     def judge(schema: PSchema, expr: PExpr): Boolean = expr match {
       case e: PColumnExpr => schema contains e.columnResolvedName
       case _ => false
     }
 
-    val leftSchemaLeftExpr = judge(leftSchema, left)
-    val leftSchemaRightExpr = judge(leftSchema, right)
-    val rightSchemaLeftExpr = judge(rightSchema, left)
-    val rightSchemaRightExpr = judge(rightSchema, right)
-
-    if (leftSchemaLeftExpr && rightSchemaRightExpr) {
-      left.schema = leftSchema
-      right.schema = rightSchema
-    }
-    else if (leftSchemaRightExpr && rightSchemaLeftExpr) {
-      val tmp = left
-      left = right
-      right = tmp
-      left.schema = leftSchema
-      right.schema = rightSchema
+    if (judge(leftSchema, left)) {
+      if (rightSchema == null || judge(rightSchema, right)) {
+        left.schema = leftSchema
+        right.schema = rightSchema
+      } else throw new RuntimeException("EqualOperator failed.")
+    } else if (judge(leftSchema, right)) {
+      if (rightSchema == null || judge(rightSchema, left)) {
+        val tmp = left
+        left = right
+        right = tmp
+        left.schema = leftSchema
+        right.schema = rightSchema
+      } else throw new RuntimeException("EqualOperator failed.")
     } else throw new RuntimeException("EqualOperator failed.")
+  }
+
+  override def calc(line: RowResult): Int = calcExpr(line, left)
+
+  override def calc(leftLine: RowResult, rightLine: RowResult): Boolean =
+    calcExpr(leftLine, left) == calcExpr(rightLine, right)
+
+  private def calcExpr(line: RowResult, expr: PExpr): Int = expr match {
+    case e: PSymbolExpression => e calc line
+    case e: PColumnExpr => e calc line
+    case _ => throw new RuntimeException("Unsupported expression.")
   }
 }
 
 class PSymbolExpression(symbol: String) extends PExpr {
-  def calc: Int = symbol.toInt
+  override def calc(line: RowResult): Int = symbol.toInt
 }
 
 class PColumnExpr(val columnResolvedName: String) extends PExpr {
-  def calc(line: RowResult): Int = {
+  override def calc(line: RowResult): Int = {
     val index = schema.names.indexOf(columnResolvedName)
-    line.array(index)
+    line.array(index).toInt
   }
 }
 

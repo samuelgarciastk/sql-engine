@@ -13,7 +13,7 @@ class FakeOptimizer extends Optimizer {
     pushdown(lp)
 
     val pp = lp.physicalPlan
-    pp.genSchema()
+    pp.genSchema
     pp
   }
 
@@ -29,12 +29,12 @@ class FakeOptimizer extends Optimizer {
           val fatherPlan = planStack.top
           fatherPlan.children -= p
           fatherPlan.children ++= p.children
-          p.children.foreach(pushdown)
+          p.children.foreach(recursion)
         }
       case p: InputPlan => if (filters contains p.tableName) p.addFilter(filters(p.tableName))
       case p =>
         planStack.push(p)
-        p.children.foreach(pushdown)
+        p.children.foreach(recursion)
         planStack.pop
     }
 

@@ -32,12 +32,8 @@ class FakeTableMetaManager extends TableMetaManager {
   override def getTableName(col: String): String = distinctCol(col)
 
   private def init(): Unit = {
-    val source = Source.fromFile(FakePath.METAPATH)
-    val lines = source.getLines
-
     distinctCol = Map()
-
-    meta = lines.map(line => {
+    meta = Source.fromFile(FakePath.METAPATH).getLines.map(line => {
       val names = line.split(":")
       assert(names.length == 2)
       val tableName = names.head.trim
@@ -48,9 +44,6 @@ class FakeTableMetaManager extends TableMetaManager {
         })
       tableName -> columns
     }).toMap
-
     distinctCol = distinctCol.filter(_._2 != null)
-
-    source.close
   }
 }

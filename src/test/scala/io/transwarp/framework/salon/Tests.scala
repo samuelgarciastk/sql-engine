@@ -16,31 +16,13 @@ class Tests {
       |WHERE t1.a = 19
     """.stripMargin
   private val sql3 =
-    """SELECT a1, b2
-      |FROM t1 JOIN t2 ON a1 = b2
-      |WHERE a1 = 19
+    """SELECT a1, t1.a, t1.b, t1.c, t1.b1, t2.a, t2.b, t2.c, t2.a2
+      |FROM t1 JOIN t2 ON b2 = a1
+      |WHERE 1 = a1
     """.stripMargin
 
   @Test
-  def parse(): Unit = {
-    val parser = new FakeParser
-    val lp = parser.parse(sql2)
-    println
-  }
-
-  @Test
-  def optimize(): Unit = {
-    val parser = new FakeParser
-    val lp = parser.parse(sql2)
-
-    val optimizer = new FakeOptimizer
-    val pp = optimizer.optimize(lp)
-
-    val generator = new FakeExecutionEmitter
-    val runner = generator.generateExecution(pp)
-
-    val result = runner.run()
-
-    result.foreach(row => println(row.mkString(",")))
+  def run(): Unit = {
+    SQLRunner.main(Array(sql2))
   }
 }
