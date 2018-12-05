@@ -56,10 +56,16 @@ class InputPlan(val tableName: String) extends LogicalPlans {
     pp
   }
 
-  def addFilter(expr: Expr): Unit = pushdownFilter = expr
+  def addFilter(filterPlan: FilterPlan): Boolean = if (pushdownFilter == null) {
+    val tbl = filterPlan.expr.asInstanceOf[EqualOperator].getTableName
+    if (tbl != null && tbl == tableName) {
+      pushdownFilter = filterPlan.expr
+      true
+    } else false
+  } else false
 }
 
-class FilterPlan(expr: Expr) extends LogicalPlans {
+class FilterPlan(val expr: Expr) extends LogicalPlans {
   override def checkMeta(tmm: TableMetaManager): Boolean = {
     val curRes = expr.checkMeta(tmm)
     val childrenRes = if (children.nonEmpty) children.map(_.checkMeta(tmm)).reduce(_ && _) else true
@@ -70,11 +76,6 @@ class FilterPlan(expr: Expr) extends LogicalPlans {
     val pp = new PFilterPlan(expr.genPExpr)
     children.foreach(pp.children += _.physicalPlan)
     pp
-  }
-
-  def getTableFilter: (String, Expr) = {
-    val tbl = expr.asInstanceOf[EqualOperator].getTableName
-    if (tbl != null) (tbl, expr) else (null, null)
   }
 }
 

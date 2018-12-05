@@ -21,20 +21,36 @@ class PEqualOperator(var left: PExpr, var right: PExpr) extends POperator {
       case _ => false
     }
 
-    if (judge(leftSchema, left)) {
-      if (rightSchema == null || judge(rightSchema, right)) {
-        left.schema = leftSchema
-        right.schema = rightSchema
-      } else throw new RuntimeException("EqualOperator failed.")
-    } else if (judge(leftSchema, right)) {
-      if (rightSchema == null || judge(rightSchema, left)) {
-        val tmp = left
-        left = right
-        right = tmp
-        left.schema = leftSchema
-        right.schema = rightSchema
-      } else throw new RuntimeException("EqualOperator failed.")
-    } else throw new RuntimeException("EqualOperator failed.")
+    def swap(): Unit = {
+      val tmp = left
+      left = right
+      right = tmp
+    }
+
+    if (leftSchema == null && rightSchema == null) throw new RuntimeException("Unsupported calculation.")
+    if (leftSchema != null && rightSchema != null) {
+      val ll = judge(leftSchema, left)
+      val lr = judge(leftSchema, right)
+      val rl = judge(rightSchema, left)
+      val rr = judge(rightSchema, right)
+      if ((ll ^ lr) && (rl ^ rr) && (ll ^ rl) && (lr ^ rr)) {
+        if (lr) swap()
+      } else throw new RuntimeException("Calculation error.")
+    } else if (leftSchema == null) {
+      val rl = judge(rightSchema, left)
+      val rr = judge(rightSchema, right)
+      if (rl ^ rr) {
+        if (rl) swap()
+      } else throw new RuntimeException("Calculation error.")
+    } else {
+      val ll = judge(leftSchema, left)
+      val lr = judge(leftSchema, right)
+      if (ll ^ lr) {
+        if (lr) swap()
+      } else throw new RuntimeException("Calculation error.")
+    }
+    left.schema = leftSchema
+    right.schema = rightSchema
   }
 
   override def calc(line: RowResult): Int = left calc line

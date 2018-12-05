@@ -6,7 +6,7 @@ class Tests {
   private val sql1 =
     """SELECT t1.a, t1.b, t1.c, t1.a1, t1.b1, t2.a, t2.b, t2.c, t2.a2, t2.b2
       |FROM t1 JOIN t2 ON t1.a = t2.b
-      |WHERE t1.a = 1
+      |WHERE t5.a = 1
     """.stripMargin
   private val sql2 =
     """SELECT t1.a, t1.b, t1.c, t1.a1, t1.b1, t2.a, t2.c, t2.a2, t2.b2, t3.a, t3.b, t4.a, t4.b, t4.c, t5.a, t5.c
@@ -17,12 +17,12 @@ class Tests {
     """.stripMargin
   private val sql3 =
     """SELECT a1, t1.a, t1.b, t1.c, t1.b1, t2.a, t2.b, t2.c, t2.a2
-      |FROM t1 JOIN t2 ON b2 = a1
+      |FROM t1 JOIN t1 ON a1 = a1
       |WHERE 1 = a1
     """.stripMargin
 
   @Test
   def run(): Unit = {
-    SQLRunner.main(Array(sql2))
+    SQLRunner.main(Array(sql3))
   }
 }
