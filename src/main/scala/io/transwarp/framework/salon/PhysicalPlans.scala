@@ -81,7 +81,7 @@ class PScanPlan(tableName: String, pushdownFilter: PExpr, columnSchema: Array[(S
     val names = columnSchema.map(f => s"$tableName.${f._1}")
     val types = columnSchema.map(_._2)
     schema = new PSchema(names, types)
-    if (pushdownFilter != null) pushdownFilter.setSchema(schema)
+    if (pushdownFilter != null) pushdownFilter.setSchema(schema, null)
     schema
   }
 

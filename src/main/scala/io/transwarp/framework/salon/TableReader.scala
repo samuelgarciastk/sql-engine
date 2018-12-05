@@ -11,10 +11,10 @@ abstract class TableReader(tableName: String, filter: PExpr) {
 
 class FakeTableReader(tableName: String, filter: PExpr, schema: PSchema) extends TableReader(tableName, filter) {
   override def getRowIterator: Iterator[RowResult] = {
-    val iter = Source.fromFile(String.format(FakePath.TABLEPATTERN, tableName))
+    var iter = Source.fromFile(String.format(FakePath.TABLEPATTERN, tableName))
       .getLines.map(f => new RowResult(f.trim.split("\\s+")))
     if (filter != null)
-      iter.filter(f => (f.array.length == schema.names.length) && filter.calc(f, null))
+      iter = iter.filter(f => (f.array.length == schema.names.length) && filter.calc(f, null))
     iter
   }
 }

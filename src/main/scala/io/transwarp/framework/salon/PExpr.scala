@@ -37,16 +37,9 @@ class PEqualOperator(var left: PExpr, var right: PExpr) extends POperator {
     } else throw new RuntimeException("EqualOperator failed.")
   }
 
-  override def calc(line: RowResult): Int = calcExpr(line, left)
+  override def calc(line: RowResult): Int = left calc line
 
-  override def calc(leftLine: RowResult, rightLine: RowResult): Boolean =
-    calcExpr(leftLine, left) == calcExpr(rightLine, right)
-
-  private def calcExpr(line: RowResult, expr: PExpr): Int = expr match {
-    case e: PSymbolExpression => e calc line
-    case e: PColumnExpr => e calc line
-    case _ => throw new RuntimeException("Unsupported expression.")
-  }
+  override def calc(leftLine: RowResult, rightLine: RowResult): Boolean = (left calc leftLine) == (right calc rightLine)
 }
 
 class PSymbolExpression(symbol: String) extends PExpr {
