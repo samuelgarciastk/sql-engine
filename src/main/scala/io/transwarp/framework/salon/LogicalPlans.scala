@@ -5,7 +5,7 @@ import io.transwarp.framework.salon.DataType.DataType
 import scala.collection.mutable.ArrayBuffer
 
 abstract class LogicalPlans {
-  val children: ArrayBuffer[LogicalPlans] = new ArrayBuffer[LogicalPlans]
+  var children: ArrayBuffer[LogicalPlans] = new ArrayBuffer[LogicalPlans]
 
   def checkMeta(tmm: TableMetaManager): Boolean
 

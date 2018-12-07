@@ -30,16 +30,18 @@ class FakeParser extends Parser {
       val joinPlan = ctx.fromClause.accept(this)
 
       filterPlan.children += joinPlan
-      selectPlan.children += filterPlan
-      selectPlan
+      if (selectPlan != null) {
+        selectPlan.children += filterPlan
+        selectPlan
+      } else filterPlan
     }
 
-    override def visitExpressionSeq(ctx: SqlBaseParser.ExpressionSeqContext): LogicalPlans = {
-      val expr = ctx.primaryExpression.asScala.map(_.accept(this).asInstanceOf[ExprPlan].expr).toArray
-      new SelectPlan(expr)
-    }
-
-    override def visitExpression(ctx: SqlBaseParser.ExpressionContext): LogicalPlans = null
+    override def visitExpressionSeq(ctx: SqlBaseParser.ExpressionSeqContext): LogicalPlans =
+      if (ctx.WILDCARD() != null) null
+      else {
+        val expr = ctx.primaryExpression.asScala.map(_.accept(this).asInstanceOf[ExprPlan].expr).toArray
+        new SelectPlan(expr)
+      }
 
     override def visitBooleanExpression(ctx: SqlBaseParser.BooleanExpressionContext): LogicalPlans = {
       val leftExpr = ctx.left.accept(this).asInstanceOf[ExprPlan].expr

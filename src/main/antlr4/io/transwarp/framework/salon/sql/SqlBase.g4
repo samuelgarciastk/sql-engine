@@ -1,4 +1,3 @@
-
 grammar SqlBase;
 
 singleStatement
@@ -10,11 +9,8 @@ statement
     ;
 
 expressionSeq
-    : primaryExpression (',' primaryExpression)* 
-    ;
-
-expression
-    : booleanExpression
+    : primaryExpression (',' primaryExpression)*
+    | WILDCARD
     ;
 
 booleanExpression
@@ -62,6 +58,8 @@ ON: 'ON';
 WHERE: 'WHERE';
 
 EQ: '=';
+
+WILDCARD: '*';
 
 INTEGER_VALUE
     : DIGIT+

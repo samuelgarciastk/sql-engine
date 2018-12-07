@@ -29,12 +29,6 @@ public interface SqlBaseVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitExpressionSeq(SqlBaseParser.ExpressionSeqContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link SqlBaseParser#expression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitExpression(SqlBaseParser.ExpressionContext ctx);
-	/**
 	 * Visit a parse tree produced by {@link SqlBaseParser#booleanExpression}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

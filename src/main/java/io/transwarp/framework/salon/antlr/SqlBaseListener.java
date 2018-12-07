@@ -38,16 +38,6 @@ public interface SqlBaseListener extends ParseTreeListener {
 	 */
 	void exitExpressionSeq(SqlBaseParser.ExpressionSeqContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link SqlBaseParser#expression}.
-	 * @param ctx the parse tree
-	 */
-	void enterExpression(SqlBaseParser.ExpressionContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link SqlBaseParser#expression}.
-	 * @param ctx the parse tree
-	 */
-	void exitExpression(SqlBaseParser.ExpressionContext ctx);
-	/**
 	 * Enter a parse tree produced by {@link SqlBaseParser#booleanExpression}.
 	 * @param ctx the parse tree
 	 */
