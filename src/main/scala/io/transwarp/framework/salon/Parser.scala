@@ -25,15 +25,25 @@ class FakeParser extends Parser {
 
     override def visitStatement(ctx: SqlBaseParser.StatementContext): LogicalPlans = {
       val selectPlan = ctx.expressionSeq.accept(this)
-      val whereExpr = ctx.where.accept(this).asInstanceOf[ExprPlan].expr
-      val filterPlan = new FilterPlan(whereExpr)
+      val filterPlan = if (ctx.where != null) {
+        val whereExpr = ctx.where.accept(this).asInstanceOf[ExprPlan].expr
+        new FilterPlan(whereExpr)
+      } else null
       val joinPlan = ctx.fromClause.accept(this)
 
-      filterPlan.children += joinPlan
-      if (selectPlan != null) {
-        selectPlan.children += filterPlan
-        selectPlan
-      } else filterPlan
+      assert(joinPlan != null)
+      if (filterPlan != null) {
+        filterPlan.children += joinPlan
+        if (selectPlan != null) {
+          selectPlan.children += filterPlan
+          selectPlan
+        } else filterPlan
+      } else {
+        if (selectPlan != null) {
+          selectPlan.children += joinPlan
+          selectPlan
+        } else joinPlan
+      }
     }
 
     override def visitExpressionSeq(ctx: SqlBaseParser.ExpressionSeqContext): LogicalPlans =
